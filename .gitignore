@@ -1,1 +1,5 @@
 .idea
+adv_defense/datasets/purchase
+adv_defense/datasets/texas
+adv_defense/trained_models
+venv
