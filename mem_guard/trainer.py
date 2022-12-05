@@ -219,19 +219,13 @@ def execute_texas(ModelClass, model_name, isDefense=False):
 
 
 if __name__ == '__main__':
-    isDefense = True
-
     models = [Classifier, RNNClassifier, ReLUClassifier]
     model_names = ['tanh_classifier', 'rnn_classifier', 'relu_classifier']
-    id = 1
 
+    # for id in range(3):
+    #     execute_purchase(models[id], model_names[id], isDefense=True)
+    #     execute_purchase(models[id], model_names[id], isDefense=False)
 
-    for id in range(3):
-        execute_purchase(models[id], model_names[id], isDefense=True)
-        execute_purchase(models[id], model_names[id], isDefense=False)
-
-    for id in range(3):
+    for id in range(2, 3):
         execute_texas(models[id], model_names[id], isDefense=True)
         execute_texas(models[id], model_names[id], isDefense=False)
-
-    # execute_purchase(isDefense=isDefense)

@@ -40,7 +40,7 @@ def iter_data(model, data, batch_size):
     return (outs, labels)
 
 
-def run_models(ModelClass, model_name, dataset='purchase', isDefense=False, batch_size=128):
+def run_models(ModelClass, model_name, dataset='purchase', isDefense=False, batch_size=8):
     if dataset == 'texas':
         shadow_train, target_train, shadow_test, target_test = texas_data_shadow()
 
@@ -60,7 +60,6 @@ def run_models(ModelClass, model_name, dataset='purchase', isDefense=False, batc
         model_dir = 'trained_models/{}/{}_with_defense/model_best.pth.tar'.format(model_name, dataset)
     else:
         model_dir = 'trained_models/{}/{}_no_defense/model_best.pth.tar'.format(model_name, dataset)
-
 
     chk = torch.load(model_dir)
     model.load_state_dict(chk['state_dict'])
@@ -87,8 +86,8 @@ def run_benchmarks(shadow_train_performance, target_train_performance, shadow_te
 
 
 def run(ModelClass, model_name, tp):
+    print('==> Running Models')
     if tp == 0:
-        print('==> Running Models')
         p_shadow_train_performance, p_target_train_performance, p_shadow_test_performance, p_target_test_performance = run_models(
             ModelClass, model_name, 'purchase', False)
         print('==> Purchase no defense benchmarks')
@@ -117,6 +116,9 @@ def run(ModelClass, model_name, tp):
 if __name__ == '__main__':
     models = [Classifier, RNNClassifier, ReLUClassifier]
     model_names = ['tanh_classifier', 'rnn_classifier', 'relu_classifier']
-    id = 1
-
-    run(models[id], model_names[id], 0)
+    
+    for id in range(3):
+        print('==>{}'.format(model_names[id]))
+        for i in range(4):
+            run(models[id], model_names[id], i)
+        print('\n--------------------------------------\n')

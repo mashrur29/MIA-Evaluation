@@ -22,7 +22,7 @@ def get_prediction_model(model, x):
     return exp / denominator
 
 
-def iter_data(model, data, noise, batch_size=100):
+def iter_data(model, data, noise, batch_size=8):
     outs = []
     labels = []
     num_batch = len(data[0]) // batch_size
@@ -117,6 +117,9 @@ def run(ModelClass, model_name, tp):
 if __name__ == '__main__':
     models = [Classifier, RNNClassifier, ReLUClassifier]
     model_names = ['tanh_classifier', 'rnn_classifier', 'relu_classifier']
-    id = 0
 
-    run(models[id], model_names[id], 0)
+    for id in range(3):
+        print('==>{}'.format(model_names[id]))
+        for i in range(4):
+            run(models[id], model_names[id], i)
+        print('\n--------------------------------------\n')

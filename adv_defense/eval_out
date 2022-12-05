@@ -1,0 +1,83 @@
+==>tanh_classifier
+==> Running Models
+==> Purchase no defense benchmarks
+Train acc 0.893364448051948, Test acc 0.7344290657439446, MIA Correctness 0.5794676911540018
+MIA Confidence: 0.5883587851918842
+MIA Entropy: 0.48912383302251383
+MIA Entropy: 0.5302009841369703
+==> Running Models
+==> Purchase with defense benchmarks
+Train acc 0.8813920454545454, Test acc 0.7635299524221453, MIA Correctness 0.5589310465162001
+MIA Confidence: 0.5667286257751765
+MIA Entropy: 0.4931311052161506
+MIA Entropy: 0.5007956265728216
+==> Running Models
+==> Texas no defense benchmarks
+Train acc 0.7660714285714286, Test acc 0.4892415596766524, MIA Correctness 0.6384149344473882
+MIA Confidence: 0.6759100519665784
+MIA Entropy: 0.5211757438353373
+MIA Entropy: 0.5611850205488758
+==> Running Models
+==> Texas with defense benchmarks
+Train acc 0.7599702380952381, Test acc 0.5369115549215406, MIA Correctness 0.6115293415868488
+MIA Confidence: 0.6398507022281095
+MIA Entropy: 0.5073271177229808
+MIA Entropy: 0.539188276951294
+
+--------------------------------------
+
+==>rnn_classifier
+==> Running Models
+==> Purchase no defense benchmarks
+Train acc 0.8918425324675324, Test acc 0.7582179930795848, MIA Correctness 0.5668122696939737
+MIA Confidence: 0.5703619139835079
+MIA Entropy: 0.5209216875252775
+MIA Entropy: 0.5703551557655148
+==> Running Models
+==> Purchase with defense benchmarks
+Train acc 0.8912337662337663, Test acc 0.7548253676470589, MIA Correctness 0.5682041992933538
+MIA Confidence: 0.5584832487473599
+MIA Entropy: 0.5155429359243697
+MIA Entropy: 0.5585272210488473
+==> Running Models
+==> Texas no defense benchmarks
+Train acc 0.7488095238095238, Test acc 0.5292439372325249, MIA Correctness 0.6097827932884994
+MIA Confidence: 0.6312160349161062
+MIA Entropy: 0.5322377470959854
+MIA Entropy: 0.6309312589158345
+==> Running Models
+==> Texas with defense benchmarks
+Train acc 0.7144345238095238, Test acc 0.5182477413219211, MIA Correctness 0.5980933912438013
+MIA Confidence: 0.6461308462400652
+MIA Entropy: 0.5395981930575369
+MIA Entropy: 0.6461308462400652
+
+--------------------------------------
+
+==>relu_classifier
+==> Running Models
+==> Purchase no defense benchmarks
+Train acc 0.9593141233766234, Test acc 0.7519058174740484, MIA Correctness 0.6037041529512874
+MIA Confidence: 0.6331541849694423
+MIA Entropy: 0.4922936127993979
+MIA Entropy: 0.5661911280220644
+==> Running Models
+==> Purchase with defense benchmarks
+Train acc 0.8278206168831169, Test acc 0.7456206747404844, MIA Correctness 0.5410999710713162
+MIA Confidence: 0.5400723708601087
+MIA Entropy: 0.49546690333887566
+MIA Entropy: 0.5103895752819845
+==> Running Models
+==> Texas no defense benchmarks
+Train acc 0.6308035714285715, Test acc 0.46778411792677127, MIA Correctness 0.5815097267509001
+MIA Confidence: 0.6167867120100536
+MIA Entropy: 0.5166686833435229
+MIA Entropy: 0.5481018825147748
+==> Running Models
+==> Texas with defense benchmarks
+Train acc 0.7760416666666666, Test acc 0.4861507370423205, MIA Correctness 0.6449454648121731
+MIA Confidence: 0.6818718794579173
+MIA Entropy: 0.501970611711161
+MIA Entropy: 0.5568949120304327
+
+--------------------------------------
