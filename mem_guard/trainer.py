@@ -180,5 +180,5 @@ def execute_texas(isDefense=False):
 
 if __name__ == '__main__':
     isDefense = True
-    # execute_texas(isDefense=isDefense)
-    execute_purchase(isDefense=isDefense)
+    execute_texas(isDefense=isDefense)
+    #execute_purchase(isDefense=isDefense)
