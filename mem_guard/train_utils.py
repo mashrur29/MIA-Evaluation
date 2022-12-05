@@ -83,10 +83,13 @@ def train_regular(X, Y, model, criterion, optimizer, device, batch_size, early_s
     return mean(losses), mean(accs)
 
 
-def test_regular(X, Y, model, criterion, device, batch_size, early_stop=10 ** 9):
+def test_regular(X, Y, model, criterion, device, batch_size, noise=None, early_stop=10 ** 9):
     model.eval()
     losses = []
     accs = []
+
+    if noise is not None:
+        noise = noise.to(device)
 
     batch_nums = len(X) // batch_size
     batch_nums -= 1
@@ -102,6 +105,10 @@ def test_regular(X, Y, model, criterion, device, batch_size, early_stop=10 ** 9)
             y = y.type(torch.LongTensor).to(device)
 
             out = model(x)
+            if noise is not None:
+                for j in range(out.shape[0]):
+
+                    out[j] = torch.add(out[j], noise)
 
             loss = criterion(out, y)
             acc1, acc2 = accuracy(out, y, topk=(1, 5))
@@ -112,81 +119,36 @@ def test_regular(X, Y, model, criterion, device, batch_size, early_stop=10 ** 9)
     return mean(losses), mean(accs)
 
 
-def train_attack(X, Y, model, attack_x, attack_y, attack_model, attack_criterion, attack_optimizer, device, batch_size,
-                 num_classes=100, skip_batch=[], early_stop=10 ** 9):
-    model.eval()
-    attack_model.train()
-
-    losses = []
-    accs = []
-
-    batch_num = min(len(X) // batch_size, len(attack_x) // batch_size)
-    batch_num -= 1
-
-    for i in range(batch_num):
-        if i > early_stop:
-            break
-        if i in skip_batch:
-            continue
-
-        train_x = X[(i * batch_size):((i + 1) * batch_size)]
-        train_y = Y[(i * batch_size):((i + 1) * batch_size)]
-
-        train_attack_x = attack_x[(i * batch_size):((i + 1) * batch_size)]
-        train_attack_y = attack_y[(i * batch_size):((i + 1) * batch_size)]
-
-        out = model(train_x)
-        attack_out = model(train_attack_x)
-        attack_inp = torch.cat((out, attack_out), dim=0)
-        index_tn = torch.cat((train_y, train_attack_y), dim=0).squeeze(0)
-        attack_label = nn.functional.one_hot(index_tn.long(), num_classes=num_classes).to(attack_inp.dtype)
-        attack_prob = attack_model(attack_inp, attack_label).reshape(-1)
-        expected_prob = torch.cat((torch.ones(len(train_x)), torch.zeros(len(train_attack_x))), dim=0).reshape(-1).type(
-            torch.FloatTensor).to(device)
-
-        loss = attack_criterion(attack_prob, expected_prob)
-        acc = attack_accuracy(attack_prob, expected_prob)
-
-        losses.append(loss.item())
-        accs.append(acc)
-
-        attack_optimizer.zero_grad()
-        loss.backward()
-        attack_optimizer.step()
-
-        if i % 50 == 0:
-            print('Batch {}/{}: loss {}, accuracy {}'.format(i + 1, batch_num, loss.item(), acc))
-
-    return mean(losses), mean(accs)
-
-
-def train_classifier(X, Y, model, attack_model, criterion, optimizer, device, batch_size, num_classes=100,
-                     alpha=0.5, skip_batch=[], early_stop=10 ** 9):
+def train_w_noise(X, Y, model, criterion, optimizer, device, batch_size, num_classes=100, early_stop=10 ** 9):
     model.train()
-    attack_model.eval()
-
     losses = []
     accs = []
 
-    batch_num = len(X) // batch_size
-    batch_num -= 1
+    noise = torch.empty(num_classes,)
+    nn.init.normal_(noise)
+    noise.requires_grad_()
+    noise.to(device)
 
-    for i in range(batch_num):
+    batch_nums = len(X) // batch_size
+    batch_nums -= 1
+
+    for i in range(batch_nums):
         if i > early_stop:
             break
-        if i in skip_batch:
-            continue
+        x = X[(batch_size * i):(batch_size * (i + 1))].to(device)
+        y = Y[(batch_size * i):(batch_size * (i + 1))].to(device)
+        y = y.type(torch.LongTensor).to(device)
 
-        train_x = X[(i * batch_size):((i + 1) * batch_size)]
-        train_y = Y[(i * batch_size):((i + 1) * batch_size)].type(torch.LongTensor).to(device)
+        out = model(x)
 
-        out = model(train_x)
+        for j in range(out.shape[0]):
+            noise = noise.to(device)
+            out[j] = torch.add(out[j], noise)
 
-        inp_label_enc = nn.functional.one_hot(train_y.reshape(-1), num_classes=num_classes).to(out.dtype)
-        attack_out = attack_model(out, inp_label_enc)
+        # print(out.shape, y.shape)
+        loss = criterion(out, y)
 
-        loss = criterion(out, train_y) + alpha * (torch.mean(attack_out) - alpha)
-        acc1, acc2 = accuracy(out, train_y, topk=(1, 5))
+        acc1, acc2 = accuracy(out, y, topk=(1, 5))
 
         losses.append(loss.item())
         accs.append(acc1.item())
@@ -196,6 +158,6 @@ def train_classifier(X, Y, model, attack_model, criterion, optimizer, device, ba
         optimizer.step()
 
         if i % 50 == 0:
-            print('Batch {}/{}: loss {}, accuracy {}'.format(i + 1, batch_num, loss.item(), acc1.item()))
+            print('Batch {}/{}: loss {}, accuracy {}'.format(i + 1, batch_nums, loss.item(), acc1.item()))
 
-    return mean(losses), mean(accs)
+    return mean(losses), mean(accs), noise

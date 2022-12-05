@@ -3,3 +3,8 @@ adv_defense/datasets/purchase
 adv_defense/datasets/texas
 adv_defense/trained_models
 venv
+mem_guard/datasets/purchase
+mem_guard/datasets/texas
+mem_guard/trained_models
+/mem_guard/datasets/purchase/
+/mem_guard/datasets/texas/

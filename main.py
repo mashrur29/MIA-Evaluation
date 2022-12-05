@@ -1,6 +1,5 @@
-def print_hi(name):
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
+import numpy as np
 
 if __name__ == '__main__':
-    print_hi('PyCharm')
+    lst = np.array([[1, 2, 4], [5, 6, 7]])
+    print(np.argmax(lst, 1))
