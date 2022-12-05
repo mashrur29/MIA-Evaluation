@@ -1,5 +1,6 @@
 import numpy as np
 from termcolor import colored
+from privacy_risk_score import calculate_risk_score
 
 
 def get_correctness(shadow_train_performance, target_train_performance, shadow_test_performance,
@@ -8,7 +9,6 @@ def get_correctness(shadow_train_performance, target_train_performance, shadow_t
     shadow_test_o, shadow_test_y = shadow_test_performance
     target_train_o, target_train_y = target_train_performance
     target_test_o, target_test_y = target_test_performance
-
 
     train_corr = (np.argmax(target_train_o, axis=1) == target_train_y).astype(int)
     test_corr = (np.argmax(target_test_o, axis=1) == target_test_y).astype(int)
@@ -21,7 +21,7 @@ def get_correctness(shadow_train_performance, target_train_performance, shadow_t
 
 
 def get_threshold(train_val, test_val):
-    #print(train_val, test_val)
+    # print(train_val, test_val)
     lst = np.concatenate((train_val, test_val))
     threshold = -1
     maxi = -1
@@ -42,7 +42,6 @@ def get_confidence(shadow_train_performance, target_train_performance, shadow_te
     shadow_test_o, shadow_test_y = shadow_test_performance
     target_train_o, target_train_y = target_train_performance
     target_test_o, target_test_y = target_test_performance
-
 
     shadow_train_conf = np.array([shadow_train_o[i, shadow_train_y[i]] for i in range(len(shadow_train_y))])
     shadow_test_conf = np.array([shadow_test_o[i, shadow_test_y[i]] for i in range(len(shadow_test_y))])
@@ -130,3 +129,20 @@ def get_modified_entropy(shadow_train_performance, target_train_performance, sha
     mia_score = 0.5 * (member / (len(target_train_y)) + nonmember / (len(target_test_y)))
 
     print('MIA Entropy: {}'.format(mia_score))
+
+
+def get_privacy_risk_score(shadow_train_performance, target_train_performance, shadow_test_performance,
+                           target_test_performance, num_classes=100):
+    shadow_train_o, shadow_train_y = shadow_train_performance
+    shadow_test_o, shadow_test_y = shadow_test_performance
+    target_train_o, target_train_y = target_train_performance
+    target_test_o, target_test_y = target_test_performance
+
+    shadow_train_conf = get_mentropy_vals(shadow_train_o, shadow_train_y)
+    shadow_test_conf = get_mentropy_vals(shadow_test_o, shadow_test_y)
+    target_train_conf = get_mentropy_vals(target_train_o, target_train_y)
+
+    scores = calculate_risk_score(shadow_train_conf, shadow_test_conf, shadow_train_y, shadow_test_y, target_train_conf,
+                                  target_train_y)
+
+    print('Privacy Risk Score: {}'.format(np.mean(scores)))

@@ -84,6 +84,8 @@ def run_benchmarks(shadow_train_performance, target_train_performance, shadow_te
     get_entropy(shadow_train_performance, target_train_performance, shadow_test_performance, target_test_performance)
     get_modified_entropy(shadow_train_performance, target_train_performance, shadow_test_performance,
                          target_test_performance)
+    get_privacy_risk_score(shadow_train_performance, target_train_performance, shadow_test_performance,
+                           target_test_performance)
 
 
 def run(ModelClass, model_name, tp):
@@ -117,9 +119,12 @@ def run(ModelClass, model_name, tp):
 if __name__ == '__main__':
     models = [Classifier, RNNClassifier, ReLUClassifier]
     model_names = ['tanh_classifier', 'rnn_classifier', 'relu_classifier']
+    id = 0
 
     for id in range(3):
         print('==>{}'.format(model_names[id]))
         for i in range(4):
             run(models[id], model_names[id], i)
         print('\n--------------------------------------\n')
+
+    # run(models[id], model_names[id], 0)

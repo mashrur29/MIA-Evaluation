@@ -83,6 +83,8 @@ def run_benchmarks(shadow_train_performance, target_train_performance, shadow_te
     get_entropy(shadow_train_performance, target_train_performance, shadow_test_performance, target_test_performance)
     get_modified_entropy(shadow_train_performance, target_train_performance, shadow_test_performance,
                          target_test_performance)
+    get_privacy_risk_score(shadow_train_performance, target_train_performance, shadow_test_performance,
+                         target_test_performance)
 
 
 def run(ModelClass, model_name, tp):
