@@ -1,9 +1,11 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+
+from adv_defense.models.rnn_classifier import RNNClassifier
 from datasets.get_dataset import texas_data_shadow, purchase_data_shadow
 from trained_models.utils import get_mode_dir
-from models.classifier import Classifier
+from models.classifier import Classifier, ReLUClassifier
 import numpy as np
 from metric_benchmarks import *
 
@@ -11,7 +13,8 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 def get_prediction_model(model, x):
-    logits = model.forward(x).to(device='cpu')
+    logits, _ = model.forward(x)
+    logits = logits.to(device='cpu')
     logits = logits.detach().numpy()
     mx = np.max(logits, axis=-1, keepdims=True)
     exp = np.exp((logits - mx))
@@ -20,7 +23,7 @@ def get_prediction_model(model, x):
     return exp / denominator
 
 
-def iter_data(model, data, batch_size=100):
+def iter_data(model, data, batch_size):
     outs = []
     labels = []
     num_batch = len(data[0]) // batch_size
@@ -37,15 +40,27 @@ def iter_data(model, data, batch_size=100):
     return (outs, labels)
 
 
-def run_models(dataset='purchase', isDefense=False):
+def run_models(ModelClass, model_name, dataset='purchase', isDefense=False, batch_size=128):
     if dataset == 'texas':
         shadow_train, target_train, shadow_test, target_test = texas_data_shadow()
-        model = Classifier(6169, 100)
+
+        if model_name == 'rnn_classifier':
+            model = ModelClass(6169, 100, batch_size).to(device)
+        else:
+            model = ModelClass(6169, 100).to(device)
     else:
         shadow_train, target_train, shadow_test, target_test = purchase_data_shadow()
-        model = Classifier(600, 100)
 
-    model_dir = get_mode_dir(dataset, isDefense)
+        if model_name == 'rnn_classifier':
+            model = ModelClass(600, 100, batch_size).to(device)
+        else:
+            model = ModelClass(600, 100).to(device)
+
+    if isDefense:
+        model_dir = 'trained_models/{}/{}_with_defense/model_best.pth.tar'.format(model_name, dataset)
+    else:
+        model_dir = 'trained_models/{}/{}_no_defense/model_best.pth.tar'.format(model_name, dataset)
+
 
     chk = torch.load(model_dir)
     model.load_state_dict(chk['state_dict'])
@@ -53,10 +68,10 @@ def run_models(dataset='purchase', isDefense=False):
     model.eval()
     # print(shadow_train[0].shape, shadow_train[1].shape)
 
-    shadow_train_performance = iter_data(model, shadow_train)
-    shadow_test_performance = iter_data(model, shadow_test)
-    target_train_performance = iter_data(model, target_train)
-    target_test_performance = iter_data(model, target_test)
+    shadow_train_performance = iter_data(model, shadow_train, batch_size)
+    shadow_test_performance = iter_data(model, shadow_test, batch_size)
+    target_train_performance = iter_data(model, target_train, batch_size)
+    target_test_performance = iter_data(model, target_test, batch_size)
 
     return shadow_train_performance, target_train_performance, shadow_test_performance, target_test_performance
 
@@ -71,33 +86,37 @@ def run_benchmarks(shadow_train_performance, target_train_performance, shadow_te
                          target_test_performance)
 
 
-def run(tp):
+def run(ModelClass, model_name, tp):
     if tp == 0:
         print('==> Running Models')
         p_shadow_train_performance, p_target_train_performance, p_shadow_test_performance, p_target_test_performance = run_models(
-            'purchase', False)
+            ModelClass, model_name, 'purchase', False)
         print('==> Purchase no defense benchmarks')
         run_benchmarks(p_shadow_train_performance, p_target_train_performance, p_shadow_test_performance,
                        p_target_test_performance)
     elif tp == 1:
         pd_shadow_train_performance, pd_target_train_performance, pd_shadow_test_performance, pd_target_test_performance = run_models(
-            'purchase', True)
+            ModelClass, model_name, 'purchase', True)
         print('==> Purchase with defense benchmarks')
         run_benchmarks(pd_shadow_train_performance, pd_target_train_performance, pd_shadow_test_performance,
                        pd_target_test_performance)
     elif tp == 2:
         t_shadow_train_performance, t_target_train_performance, t_shadow_test_performance, t_target_test_performance = run_models(
-            'texas', False)
+            ModelClass, model_name, 'texas', False)
         print('==> Texas no defense benchmarks')
         run_benchmarks(t_shadow_train_performance, t_target_train_performance, t_shadow_test_performance,
                        t_target_test_performance)
     else:
         td_shadow_train_performance, td_target_train_performance, td_shadow_test_performance, td_target_test_performance = run_models(
-            'texas', True)
+            ModelClass, model_name, 'texas', True)
         print('==> Texas with defense benchmarks')
         run_benchmarks(td_shadow_train_performance, td_target_train_performance, td_shadow_test_performance,
                        td_target_test_performance)
 
 
 if __name__ == '__main__':
-    run(3)
+    models = [Classifier, RNNClassifier, ReLUClassifier]
+    model_names = ['tanh_classifier', 'rnn_classifier', 'relu_classifier']
+    id = 1
+
+    run(models[id], model_names[id], 0)

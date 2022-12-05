@@ -1,8 +1,10 @@
 import torch
 from torch import nn, optim
 import numpy as np
+
+from models.rnn_classifier import RNNClassifier
 from train_utils import *
-from models.classifier import Classifier
+from models.classifier import Classifier, ReLUClassifier
 from models.attack_model import AttackModel
 from datasets.get_dataset import *
 from termcolor import colored
@@ -10,15 +12,24 @@ from termcolor import colored
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
-def train_no_defense(X, Y, test_X, test_Y, dataset, defended, epochs=50, batch_size=128, learning_rate=0.0001):
-    checkpoint = 'trained_models/{}_{}'.format(dataset, defended)
+def write2file(filename, lst):
+    with open(filename, 'w+') as fp:
+        for item in lst:
+            fp.write("%s\n" % item)
+
+
+def train_no_defense(ModelClass, model_name, X, Y, test_X, test_Y, dataset, defended, epochs=50, batch_size=128,
+                     learning_rate=0.0001):
+    accs = []
+    train_accs = []
+    checkpoint = 'trained_models/{}/{}_{}'.format(model_name, dataset, defended)
     best_acc = -1
     num_classes = 100
     inp_size = 600
     if dataset == 'texas':
         inp_size = 6169
 
-    model = Classifier(inp_size, num_classes).to(device)
+    model = ModelClass(inp_size, num_classes).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -37,10 +48,12 @@ def train_no_defense(X, Y, test_X, test_Y, dataset, defended, epochs=50, batch_s
         print('==> Starting to train')
         train_loss, train_acc = train_regular(train_x, train_y, model, criterion, optimizer, device,
                                               batch_size=batch_size)
+        train_accs.append(train_acc)
         print('==> Training complete')
 
         print(colored('Train loss {} and Train acc {}'.format(train_loss, train_acc), 'yellow'))
         test_loss, test_acc = test_regular(test_X, test_Y, model, criterion, device, batch_size=batch_size)
+        accs.append(test_acc)
         print(colored('Test loss {} and Test acc {}'.format(test_loss, test_acc), 'green'))
         print('')
 
@@ -61,17 +74,22 @@ def train_no_defense(X, Y, test_X, test_Y, dataset, defended, epochs=50, batch_s
         )
 
     print(colored('Best Acc {}'.format(best_acc), 'green'))
+    write2file(os.path.join(checkpoint, 'test_acc_no_defense'), accs)
+    write2file(os.path.join(checkpoint, 'train_acc_no_defense'), train_accs)
 
 
-def train_with_noise(X, Y, test_X, test_Y, dataset, defended, epochs=50, batch_size=128, learning_rate=0.0001):
-    checkpoint = 'trained_models/{}_{}'.format(dataset, defended)
+def train_with_noise(ModelClass, model_name, X, Y, test_X, test_Y, dataset, defended, epochs=50, batch_size=128,
+                     learning_rate=0.0001):
+    accs = []
+    train_accs = []
+    checkpoint = 'trained_models/{}/{}_{}'.format(model_name, dataset, defended)
     best_acc = -1
     num_classes = 100
     inp_size = 600
     if dataset == 'texas':
         inp_size = 6169
 
-    model = Classifier(inp_size, num_classes).to(device)
+    model = ModelClass(inp_size, num_classes).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -90,10 +108,12 @@ def train_with_noise(X, Y, test_X, test_Y, dataset, defended, epochs=50, batch_s
         print('==> Starting to train')
         train_loss, train_acc, noise = train_w_noise(train_x, train_y, model, criterion, optimizer, device,
                                                      batch_size=batch_size)
+        train_accs.append(train_acc)
         print('==> Training complete')
 
         print(colored('Train loss {} and Train acc {}'.format(train_loss, train_acc), 'yellow'))
         test_loss, test_acc = test_regular(test_X, test_Y, model, criterion, device, noise=noise, batch_size=batch_size)
+        accs.append(test_acc)
         print(colored('Test loss {} and Test acc {}'.format(test_loss, test_acc), 'green'))
         print('')
 
@@ -116,30 +136,48 @@ def train_with_noise(X, Y, test_X, test_Y, dataset, defended, epochs=50, batch_s
             torch.save(noise, os.path.join(checkpoint, 'noise.pt'))
 
     print(colored('Best Acc {}'.format(best_acc), 'green'))
+    write2file(os.path.join(checkpoint, 'test_acc_no_defense'), accs)
+    write2file(os.path.join(checkpoint, 'train_acc_no_defense'), train_accs)
 
 
-def train_purchase_defense(X, Y, attack_X, attack_Y, test_X, test_Y):
-    train_with_noise(X, Y, test_X, test_Y, dataset='purchase', defended='with_defense', epochs=20)
+def train_purchase_defense(ModelClass, model_name, X, Y, attack_X, attack_Y, test_X, test_Y):
+    lr = 0.0001
+    if model_name == 'rnn_classifier':
+        lr = 0.001
+    train_with_noise(ModelClass, model_name, X, Y, test_X, test_Y, dataset='purchase', defended='with_defense',
+                     epochs=20, learning_rate=lr)
 
 
-def train_texas_defense(X, Y, attack_X, attack_Y, test_X, test_Y):
+def train_texas_defense(ModelClass, model_name, X, Y, attack_X, attack_Y, test_X, test_Y):
+    lr = 0.0001
     Y = Y.reshape(-1)
     test_Y = test_Y.reshape(-1)
     attack_Y = attack_Y.reshape(-1)
-    train_with_noise(X, Y, test_X, test_Y, dataset='texas', defended='with_defense', epochs=20)
+    if model_name == 'rnn_classifier':
+        lr = 0.001
+    train_with_noise(ModelClass, model_name, X, Y, test_X, test_Y, dataset='texas', defended='with_defense', epochs=20,
+                     learning_rate=lr)
 
 
-def train_purchase_no_defense(X, Y, test_X, test_Y):
-    train_no_defense(X, Y, test_X, test_Y, dataset='purchase', defended='no_defense', epochs=50, learning_rate=0.003)
+def train_purchase_no_defense(ModelClass, model_name, X, Y, test_X, test_Y):
+    lr = 0.003
+    if model_name == 'rnn_classifier':
+        lr = 0.001
+    train_no_defense(ModelClass, model_name, X, Y, test_X, test_Y, dataset='purchase', defended='no_defense', epochs=20,
+                     learning_rate=lr)
 
 
-def train_texas_no_defense(X, Y, test_X, test_Y):
+def train_texas_no_defense(ModelClass, model_name, X, Y, test_X, test_Y):
+    lr = 0.0001
     Y = Y.reshape(-1)
     test_Y = test_Y.reshape(-1)
-    train_no_defense(X, Y, test_X, test_Y, dataset='texas', defended='no_defense', epochs=20)
+    if model_name == 'rnn_classifier':
+        lr = 0.001
+    train_no_defense(ModelClass, model_name, X, Y, test_X, test_Y, dataset='texas', defended='no_defense', epochs=20,
+                     learning_rate=lr)
 
 
-def execute_purchase(isDefense=False):
+def execute_purchase(ModelClass, model_name, isDefense=False):
     purchaseX, purchaseY = purchase_data()
     purchase_len_train = len(purchaseX)
     purchase_train_classifier_ratio, purchase_train_attack_ratio = 0.1, 0.15
@@ -153,12 +191,13 @@ def execute_purchase(isDefense=False):
     test_y = purchaseY[int((purchase_train_classifier_ratio + purchase_train_attack_ratio) * purchase_len_train):]
 
     if isDefense:
-        train_purchase_defense(train_classifier_x, train_classifier_y, train_attack_x, train_attack_y, test_x, test_y)
+        train_purchase_defense(ModelClass, model_name, train_classifier_x, train_classifier_y, train_attack_x,
+                               train_attack_y, test_x, test_y)
     else:
-        train_purchase_no_defense(train_classifier_x, train_classifier_y, test_x, test_y)
+        train_purchase_no_defense(ModelClass, model_name, train_classifier_x, train_classifier_y, test_x, test_y)
 
 
-def execute_texas(isDefense=False):
+def execute_texas(ModelClass, model_name, isDefense=False):
     texasX, texasY = texas_data()
 
     texas_len_train = len(texasX)
@@ -173,12 +212,18 @@ def execute_texas(isDefense=False):
     test_y = texasY[int((texas_train_classifier_ratio + texas_train_attack_ratio) * texas_len_train):]
 
     if isDefense:
-        train_texas_defense(train_classifier_x, train_classifier_y, train_attack_x, train_attack_y, test_x, test_y)
+        train_texas_defense(ModelClass, model_name, train_classifier_x, train_classifier_y, train_attack_x,
+                            train_attack_y, test_x, test_y)
     else:
-        train_texas_no_defense(train_classifier_x, train_classifier_y, test_x, test_y)
+        train_texas_no_defense(ModelClass, model_name, train_classifier_x, train_classifier_y, test_x, test_y)
 
 
 if __name__ == '__main__':
-    isDefense = True
-    execute_texas(isDefense=isDefense)
-    #execute_purchase(isDefense=isDefense)
+    isDefense = False
+
+    models = [Classifier, RNNClassifier, ReLUClassifier]
+    model_names = ['tanh_classifier', 'rnn_classifier', 'relu_classifier']
+    id = 0
+
+    execute_purchase(models[id], model_names[id], isDefense=isDefense)
+    # execute_purchase(isDefense=isDefense)

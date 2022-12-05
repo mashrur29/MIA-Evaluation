@@ -21,4 +21,26 @@ class Classifier(nn.Module):
     def forward(self, x):
         h = self.hidden(x)
         out_tensor = self.out(h)
-        return out_tensor
+        return out_tensor, h
+
+class ReLUClassifier(nn.Module):
+    def __init__(self, inp_size, num_classes):
+        super(ReLUClassifier, self).__init__()
+
+        self.hidden = nn.Sequential (
+            nn.Linear(inp_size, 1024),
+            nn.ReLU(),
+            nn.Linear(1024, 512),
+            nn.ReLU(),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+        )
+
+        self.out = nn.Linear(128, num_classes)
+
+    def forward(self, x):
+        h = self.hidden(x)
+        out_tensor = self.out(h)
+        return out_tensor, h

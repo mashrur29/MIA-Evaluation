@@ -63,7 +63,7 @@ def train_regular(X, Y, model, criterion, optimizer, device, batch_size, early_s
         y = Y[(batch_size * i):(batch_size * (i + 1))].to(device)
         y = y.type(torch.LongTensor).to(device)
 
-        out = model(x)
+        out, _ = model(x)
 
         # print(out.shape, y.shape)
         loss = criterion(out, y)
@@ -104,7 +104,7 @@ def test_regular(X, Y, model, criterion, device, batch_size, noise=None, early_s
             y = torch.autograd.Variable(y)
             y = y.type(torch.LongTensor).to(device)
 
-            out = model(x)
+            out, _ = model(x)
             if noise is not None:
                 for j in range(out.shape[0]):
 
@@ -127,37 +127,39 @@ def train_w_noise(X, Y, model, criterion, optimizer, device, batch_size, num_cla
     noise = torch.empty(num_classes,)
     nn.init.normal_(noise)
     noise.requires_grad_()
+
     noise.to(device)
 
     batch_nums = len(X) // batch_size
     batch_nums -= 1
 
-    for i in range(batch_nums):
-        if i > early_stop:
-            break
-        x = X[(batch_size * i):(batch_size * (i + 1))].to(device)
-        y = Y[(batch_size * i):(batch_size * (i + 1))].to(device)
-        y = y.type(torch.LongTensor).to(device)
+    with torch.autograd.set_detect_anomaly(True):
+        for i in range(batch_nums):
+            if i > early_stop:
+                break
+            x = X[(batch_size * i):(batch_size * (i + 1))].to(device)
+            y = Y[(batch_size * i):(batch_size * (i + 1))].to(device)
+            y = y.type(torch.LongTensor).to(device)
 
-        out = model(x)
+            out, _ = model(x)
 
-        for j in range(out.shape[0]):
-            noise = noise.to(device)
-            out[j] = torch.add(out[j], noise)
+            for j in range(out.shape[0]):
+                noise_clone = noise.to(device).clone()
+                out[j] = torch.add(out[j], noise_clone)
 
-        # print(out.shape, y.shape)
-        loss = criterion(out, y)
+            # print(out.shape, y.shape)
+            loss = criterion(out, y)
 
-        acc1, acc2 = accuracy(out, y, topk=(1, 5))
+            acc1, acc2 = accuracy(out, y, topk=(1, 5))
 
-        losses.append(loss.item())
-        accs.append(acc1.item())
+            losses.append(loss.item())
+            accs.append(acc1.item())
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-        if i % 50 == 0:
-            print('Batch {}/{}: loss {}, accuracy {}'.format(i + 1, batch_nums, loss.item(), acc1.item()))
+            if i % 50 == 0:
+                print('Batch {}/{}: loss {}, accuracy {}'.format(i + 1, batch_nums, loss.item(), acc1.item()))
 
     return mean(losses), mean(accs), noise
