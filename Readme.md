@@ -1,0 +1,1 @@
+# The effectiveness of NN-based defense models against Membership Inference Attacks
