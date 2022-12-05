@@ -31,7 +31,7 @@ def attack_accuracy(out, expected_out, threshold=0.5):
         else:
             if out[i] <= threshold:
                 res += 1
-    return float(res / float(len(out)))
+    return float(res / float(len(out)))*100.0
 
 
 def save_checkpoint(statedict, best, checkpoint, filename):
@@ -119,7 +119,7 @@ def test_regular(X, Y, model, criterion, device, batch_size, noise=None, early_s
     return mean(losses), mean(accs)
 
 
-def train_w_noise(X, Y, model, criterion, optimizer, device, batch_size, num_classes=100, early_stop=10 ** 9):
+def train_w_noise(model_name, X, Y, model, criterion, optimizer, device, batch_size, num_classes=100, early_stop=10 ** 9):
     model.train()
     losses = []
     accs = []
@@ -127,8 +127,11 @@ def train_w_noise(X, Y, model, criterion, optimizer, device, batch_size, num_cla
     noise = torch.empty(num_classes,)
     nn.init.normal_(noise)
     noise.requires_grad_()
+    #noise.requires_grad = True
 
-    noise.to(device)
+
+
+    noise = noise.to(device)
 
     batch_nums = len(X) // batch_size
     batch_nums -= 1
@@ -142,15 +145,18 @@ def train_w_noise(X, Y, model, criterion, optimizer, device, batch_size, num_cla
             y = y.type(torch.LongTensor).to(device)
 
             out, _ = model(x)
+            out_clone = out.clone()
 
-            for j in range(out.shape[0]):
-                noise_clone = noise.to(device).clone()
-                out[j] = torch.add(out[j], noise_clone)
+            for j in range(out_clone.shape[0]):
+                #noise = noise.to(device)
+                #noise_clone = noise.to(device).clone()
+                out_clone[j] = torch.add(out_clone[j], noise)
 
-            # print(out.shape, y.shape)
-            loss = criterion(out, y)
 
-            acc1, acc2 = accuracy(out, y, topk=(1, 5))
+            loss = criterion(out_clone, y)
+
+            acc1, acc2 = accuracy(out_clone, y, topk=(1, 5))
+
 
             losses.append(loss.item())
             accs.append(acc1.item())

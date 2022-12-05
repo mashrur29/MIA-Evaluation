@@ -106,7 +106,7 @@ def train_with_noise(ModelClass, model_name, X, Y, test_X, test_Y, dataset, defe
         test_Y = torch.Tensor(test_Y).to(device)
 
         print('==> Starting to train')
-        train_loss, train_acc, noise = train_w_noise(train_x, train_y, model, criterion, optimizer, device,
+        train_loss, train_acc, noise = train_w_noise(model_name, train_x, train_y, model, criterion, optimizer, device,
                                                      batch_size=batch_size)
         train_accs.append(train_acc)
         print('==> Training complete')
@@ -143,7 +143,7 @@ def train_with_noise(ModelClass, model_name, X, Y, test_X, test_Y, dataset, defe
 def train_purchase_defense(ModelClass, model_name, X, Y, attack_X, attack_Y, test_X, test_Y):
     lr = 0.0001
     if model_name == 'rnn_classifier':
-        lr = 0.001
+        lr = 0.00004
     train_with_noise(ModelClass, model_name, X, Y, test_X, test_Y, dataset='purchase', defended='with_defense',
                      epochs=20, learning_rate=lr)
 
@@ -154,7 +154,7 @@ def train_texas_defense(ModelClass, model_name, X, Y, attack_X, attack_Y, test_X
     test_Y = test_Y.reshape(-1)
     attack_Y = attack_Y.reshape(-1)
     if model_name == 'rnn_classifier':
-        lr = 0.001
+        lr = 0.00004
     train_with_noise(ModelClass, model_name, X, Y, test_X, test_Y, dataset='texas', defended='with_defense', epochs=20,
                      learning_rate=lr)
 
@@ -219,11 +219,19 @@ def execute_texas(ModelClass, model_name, isDefense=False):
 
 
 if __name__ == '__main__':
-    isDefense = False
+    isDefense = True
 
     models = [Classifier, RNNClassifier, ReLUClassifier]
     model_names = ['tanh_classifier', 'rnn_classifier', 'relu_classifier']
-    id = 0
+    id = 1
 
-    execute_purchase(models[id], model_names[id], isDefense=isDefense)
+
+    for id in range(3):
+        execute_purchase(models[id], model_names[id], isDefense=True)
+        execute_purchase(models[id], model_names[id], isDefense=False)
+
+    for id in range(3):
+        execute_texas(models[id], model_names[id], isDefense=True)
+        execute_texas(models[id], model_names[id], isDefense=False)
+
     # execute_purchase(isDefense=isDefense)
